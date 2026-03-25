@@ -1,13 +1,15 @@
 export interface BoardListResponseItem {
-  post_id: number;
+  board_id: number;
   title: string;
-  nickname?: string;
+  content: string;
+  nickname: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface BoardListResponse {
-  posts: BoardListResponseItem[];
-  total: number;
+  boards: BoardListResponseItem[];
   page: number;
-  size: number;
+  total_pages: number;
+  total_count: number;
 }
