@@ -1,4 +1,4 @@
-name: Deploy multi-agent-ui via Docker
+name: Deploy antelligen-frontend via Docker
 
 on:
   push:
@@ -35,19 +35,19 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ secrets.REPO_USER }}/multi-agent-ui:latest
+          tags: ghcr.io/${{ secrets.REPO_USER }}/antelligen-frontend:latest
           platforms: linux/amd64,linux/arm64
 
   deploy:
     needs: build-and-push
-    runs-on: [self-hosted, multi-agent-ui]
+    runs-on: [self-hosted, antelligen-frontend]
 
     steps:
       - name: GHCR Login
-        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.REPO_USER }} --password-stdin
+        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
     
       - name: Pull latest image
-        run: docker pull ghcr.io/${{ secrets.REPO_USER }}/multi-agent-ui:latest
+        run: docker pull ghcr.io/${{ secrets.REPO_USER }}/antelligen-frontend:latest
 
       - name: Stop old container
         run: |
@@ -62,9 +62,9 @@ jobs:
         run: |
           sleep 5
           if curl -sSf http://localhost:37123/ > /dev/null; then
-            echo "multi-agent-ui is UP"
+            echo "antelligen-frontend is UP"
           else
             echo "Health check failed"
-            docker logs multi-agent-ui --tail 200
+            docker logs antelligen-frontend --tail 200
             exit 1
           fi
