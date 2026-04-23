@@ -23,6 +23,7 @@ import { tickerAtom } from "@/features/dashboard/application/atoms/tickerAtom";
 import { companyNameAtom } from "@/features/dashboard/application/atoms/companyNameAtom";
 import { chartApiAtom, chartContainerAtom } from "@/features/dashboard/application/atoms/chartApiAtom";
 import { anomalyBarsAtom } from "@/features/dashboard/application/atoms/anomalyBarsAtom";
+import type { AnomalyBar } from "@/features/dashboard/infrastructure/api/anomalyBarsApi";
 import { useNasdaqChart } from "@/features/dashboard/application/hooks/useNasdaqChart";
 import { useAnomalyBars } from "@/features/dashboard/application/hooks/useAnomalyBars";
 import ChartSkeleton from "@/features/dashboard/ui/components/skeletons/ChartSkeleton";
@@ -30,8 +31,7 @@ import PeriodTabs from "@/features/dashboard/ui/components/PeriodTabs";
 
 const MARKER_COLOR_SELECTED = "#a855f7";
 // 한국식: 상승 = 빨강, 하락 = 파랑 (ADR-0001 §4 결정)
-const ANOMALY_COLOR_UP = "#ef4444";
-const ANOMALY_COLOR_DOWN = "#3b82f6";
+const ANOMALY_COLOR_STAR = "#EAB308";
 
 export default function NasdaqChart() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -199,16 +199,34 @@ export default function NasdaqChart() {
 
     const markers: SeriesMarker<Time>[] = [];
 
-    // 1) 이상치 봉 마커 — ★ 표시 + 한국식 색 (up=빨강 / down=파랑)
-    if (anomalyBarsState.status === "SUCCESS") {
+    // 1) 이상치 봉 마커 — 차트 봉 time과 anomaly date 정밀도가 다를 수 있어
+    //    가장 가까운 봉으로 스냅하고, 같은 봉에 여러 이벤트가 매핑되면 |return_pct| 최대만 표시.
+    const chartBars = nasdaqState.status === "SUCCESS" ? nasdaqState.bars : [];
+    if (anomalyBarsState.status === "SUCCESS" && chartBars.length > 0) {
+      const strongestByBar = new Map<string, AnomalyBar>();
       for (const ev of anomalyBarsState.events) {
-        const isUp = ev.direction === "up";
+        const evTs = new Date(ev.date).getTime();
+        let closestTime = chartBars[0].time;
+        let minDiff = Math.abs(new Date(closestTime).getTime() - evTs);
+        for (const bar of chartBars) {
+          const diff = Math.abs(new Date(bar.time).getTime() - evTs);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestTime = bar.time;
+          }
+        }
+        const existing = strongestByBar.get(closestTime);
+        if (!existing || Math.abs(ev.return_pct) > Math.abs(existing.return_pct)) {
+          strongestByBar.set(closestTime, ev);
+        }
+      }
+      for (const [barTime, ev] of strongestByBar) {
         markers.push({
-          time: ev.date as Time,
-          position: isUp ? "aboveBar" : "belowBar",
-          shape: isUp ? "arrowDown" : "arrowUp",
-          color: isUp ? ANOMALY_COLOR_UP : ANOMALY_COLOR_DOWN,
-          size: 1,
+          time: barTime as Time,
+          position: ev.direction === "up" ? "aboveBar" : "belowBar",
+          shape: "circle",
+          color: ANOMALY_COLOR_STAR,
+          size: 0,
           text: "★",
         });
       }
@@ -228,7 +246,7 @@ export default function NasdaqChart() {
     // lightweight-charts 는 time 오름차순으로 정렬된 markers 를 요구
     markers.sort((a, b) => String(a.time).localeCompare(String(b.time)));
     markersRef.current.setMarkers(markers);
-  }, [anomalyBarsState, selectedBarTime]);
+  }, [anomalyBarsState, nasdaqState, selectedBarTime]);
 
   // 패널 선택 시 해당 bar로 차트 스크롤 — bar 인덱스 기준으로 가운데 정렬
   useEffect(() => {
