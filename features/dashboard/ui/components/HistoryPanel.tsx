@@ -99,11 +99,11 @@ export default function HistoryPanel() {
 
     // 중요도 필터 (KR A.3) — 1~5 정수 점수 기준.
     // MACRO 이벤트는 v2 점수가 없고 0~1 importance_score만 있으므로 통과시킨다(별도 임계값 없음).
+    // 미분류(score==null) 이벤트는 v1 분류기 결과 또는 NEWS/MACRO 등 점수 미적용 영역이므로 항상 통과.
     filtered = filtered.filter((ev) => {
-      // MACRO는 항상 통과 (v2 미적용 영역)
       if (ev.category === "MACRO") return true;
       const v2 = ev.importance_score_1to5;
-      if (v2 == null) return importanceFilter.showNoise;
+      if (v2 == null) return true;
       return v2 >= importanceFilter.minPoints;
     });
 
