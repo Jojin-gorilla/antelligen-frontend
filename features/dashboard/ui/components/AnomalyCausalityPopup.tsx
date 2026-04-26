@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { selectedAnomalyBarAtom } from "@/features/dashboard/application/atoms/selectedAnomalyBarAtom";
 import { anomalyCausalityAtom } from "@/features/dashboard/application/atoms/anomalyCausalityAtom";
+import { anomalyBarsAtom } from "@/features/dashboard/application/atoms/anomalyBarsAtom";
 import { useAnomalyCausality } from "@/features/dashboard/application/hooks/useAnomalyCausality";
+import type { AnomalyBar } from "@/features/dashboard/infrastructure/api/anomalyBarsApi";
 import type {
   HypothesisConfidence,
   HypothesisLayer,
@@ -53,6 +55,25 @@ function dedupeSources(hypotheses: HypothesisResult[]): HypothesisSource[] {
   return out;
 }
 
+/** 같은 ticker 의 다른 이상치 봉 중 target 과 가장 유사한 것 Top n.
+ *
+ * 유사도: 같은 direction 우선 → |return_pct| 절대 차이 작은 순 → |z_score| 차이.
+ * target 봉 자체는 제외. backend 추가 필드 없이 anomalyBars 응답만으로 계산.
+ */
+function findSimilarEvents(target: AnomalyBar, all: AnomalyBar[], n = 3): AnomalyBar[] {
+  const sameDir = all.filter(
+    (b) => b.date !== target.date && b.direction === target.direction,
+  );
+  const scored = sameDir
+    .map((b) => ({
+      bar: b,
+      retDiff: Math.abs(Math.abs(b.return_pct) - Math.abs(target.return_pct)),
+      zDiff: Math.abs(b.z_score - target.z_score),
+    }))
+    .sort((a, b) => a.retDiff - b.retDiff || a.zDiff - b.zDiff);
+  return scored.slice(0, n).map((x) => x.bar);
+}
+
 /** "이후 전개" 단일 셀. 한국식 색(상승 빨강/하락 파랑). null=데이터 부족 회색 "—" 표기. */
 function FutureReturnCell({ label, value }: { label: string; value: number | null | undefined }) {
   const hasValue = value != null;
@@ -75,6 +96,7 @@ function FutureReturnCell({ label, value }: { label: string; value: number | nul
 export default function AnomalyCausalityPopup() {
   const [selected, setSelected] = useAtom(selectedAnomalyBarAtom);
   const state = useAtomValue(anomalyCausalityAtom);
+  const barsState = useAtomValue(anomalyBarsAtom);
   const [expanded, setExpanded] = useState(false);
   useAnomalyCausality();
 
@@ -82,6 +104,14 @@ export default function AnomalyCausalityPopup() {
     () => (state.status === "SUCCESS" ? dedupeSources(state.hypotheses) : []),
     [state],
   );
+
+  // KR4 펼치기: 같은 ticker 의 다른 이상치 봉 중 유사도 Top 3
+  const similarEvents = useMemo<AnomalyBar[]>(() => {
+    if (!selected) return [];
+    if (barsState.status !== "SUCCESS") return [];
+    if (barsState.ticker !== selected.ticker) return [];
+    return findSimilarEvents(selected.bar, barsState.events, 3);
+  }, [selected, barsState]);
 
   useEffect(() => {
     if (!selected) return;
@@ -369,8 +399,59 @@ export default function AnomalyCausalityPopup() {
                     </div>
                   </div>
 
+                  <div>
+                    <div className="mb-1 font-semibold text-zinc-700 dark:text-zinc-200">
+                      유사 과거 사건{" "}
+                      <span className="font-normal text-zinc-400">
+                        (같은 방향 + 변동률 근접 Top 3)
+                      </span>
+                    </div>
+                    {similarEvents.length === 0 ? (
+                      <p className="text-zinc-500 dark:text-zinc-400">
+                        같은 종목의 비교 가능한 다른 이상치 봉이 없습니다.
+                      </p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {similarEvents.map((b) => {
+                          const isUp = b.direction === "up";
+                          const color = isUp ? "text-red-500" : "text-blue-500";
+                          const sign = b.return_pct >= 0 ? "+" : "";
+                          return (
+                            <li
+                              key={b.date}
+                              className="flex items-center justify-between gap-2 rounded-md bg-white px-2 py-1 dark:bg-zinc-900/40"
+                            >
+                              <span className="text-zinc-600 dark:text-zinc-300">
+                                {b.date}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <span className={`font-semibold ${color}`}>
+                                  {sign}
+                                  {b.return_pct.toFixed(2)}%
+                                </span>
+                                {b.volume_ratio != null && (
+                                  <span
+                                    className="text-zinc-500 dark:text-zinc-400"
+                                    title="평균 거래량 대비 배수"
+                                  >
+                                    ×{b.volume_ratio.toFixed(2)}
+                                  </span>
+                                )}
+                                {b.time_of_day && (
+                                  <span className="rounded-full bg-zinc-200/60 px-1.5 py-0.5 text-[9px] text-zinc-600 dark:bg-zinc-700/60 dark:text-zinc-300">
+                                    {b.time_of_day === "GAP" ? "갭" : "장중"}
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+
                   <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                    수급 정보 · 유사 과거 사건은 후속 PR 예정.
+                    수급 정보(외인/기관/개인)는 후속 PR 예정.
                   </p>
                 </div>
               )}
