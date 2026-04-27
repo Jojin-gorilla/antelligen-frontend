@@ -2,12 +2,10 @@
 
 export type ImportanceFilterState = {
   minPoints: number;     // 1~5. 이 점수 이상만 통과.
-  showNoise: boolean;    // importance_score_1to5가 null인 미분류 이벤트 표시 여부.
 };
 
 export const DEFAULT_IMPORTANCE_FILTER: ImportanceFilterState = {
   minPoints: 3,
-  showNoise: true,
 };
 
 const POINTS = [1, 2, 3, 4, 5] as const;
@@ -55,18 +53,6 @@ export default function ImportanceFilter({ value, onChange }: Props) {
           </button>
         );
       })}
-      <button
-        type="button"
-        onClick={() => onChange({ ...value, showNoise: !value.showNoise })}
-        title="미분류(점수 없음) 이벤트 표시"
-        className={`ml-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${
-          value.showNoise
-            ? "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
-            : "bg-zinc-100 text-zinc-400 line-through hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-700"
-        }`}
-      >
-        노이즈
-      </button>
     </div>
   );
 }

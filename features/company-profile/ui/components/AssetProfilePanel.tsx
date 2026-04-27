@@ -44,8 +44,8 @@ const ASSET_BADGE: Record<AssetType, { label: string; className: string }> = {
 
 function PanelShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <h3 className="mb-4 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+    <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <h3 className="mb-4 shrink-0 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
         종목 프로필
       </h3>
       {children}
@@ -248,11 +248,11 @@ export default function AssetProfilePanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <h3 className="mb-4 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+    <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <h3 className="mb-4 shrink-0 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
         종목 프로필
       </h3>
-      <div className="max-h-[42.25rem] overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:theme(colors.zinc.300)_transparent] dark:[scrollbar-color:theme(colors.zinc.700)_transparent]">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:theme(colors.zinc.300)_transparent] dark:[scrollbar-color:theme(colors.zinc.700)_transparent]">
         <ProfileBody profile={state.data} />
       </div>
     </div>
