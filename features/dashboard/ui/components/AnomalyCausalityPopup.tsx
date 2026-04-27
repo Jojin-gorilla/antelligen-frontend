@@ -171,6 +171,22 @@ export default function AnomalyCausalityPopup() {
                     </>
                   );
                 }
+                if (t === "drawdown_start") {
+                  return (
+                    <>
+                      <span className="mr-1.5">🔽</span>
+                      Drawdown 시작 분석
+                    </>
+                  );
+                }
+                if (t === "drawdown_recovery") {
+                  return (
+                    <>
+                      <span className="mr-1.5">🔼</span>
+                      Drawdown 회복 분석
+                    </>
+                  );
+                }
                 return (
                   <>
                     <span className="mr-1.5 text-yellow-500">★</span>

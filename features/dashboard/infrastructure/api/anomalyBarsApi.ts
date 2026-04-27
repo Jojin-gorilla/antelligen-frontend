@@ -3,7 +3,13 @@ import type { ApiResponse } from "@/infrastructure/http/apiResponse";
 import type { ChartInterval } from "@/features/dashboard/domain/model/chartInterval";
 
 // OKR 다층 탐지 — 봉 마커 type. backend default "zscore" backward-compat.
-export type AnomalyBarType = "zscore" | "cumulative_5d" | "cumulative_20d";
+// Phase 2 (PR #77) 에서 drawdown_start / drawdown_recovery 추가.
+export type AnomalyBarType =
+  | "zscore"
+  | "cumulative_5d"
+  | "cumulative_20d"
+  | "drawdown_start"
+  | "drawdown_recovery";
 
 /**
  * 차트 이상치 봉 1건 (§13.4 C / §17 / OKR 다층 탐지).
@@ -28,6 +34,8 @@ export interface AnomalyBar {
   cumulative_return_1d?: number | null;
   cumulative_return_5d?: number | null;
   cumulative_return_20d?: number | null;
+  // KR4 — z-score 계산에 사용한 σ 방식 디버그. "stdev" | "stable" | "mad". 누적/Drawdown 은 null.
+  sigma_method?: string | null;
   causality: string | null;
 }
 
