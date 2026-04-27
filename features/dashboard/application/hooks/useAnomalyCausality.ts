@@ -20,7 +20,8 @@ export function useAnomalyCausality() {
     setState({ status: "LOADING", ticker, date: bar.date });
 
     const controller = new AbortController();
-    fetchAnomalyCausality(ticker, bar.date, controller.signal)
+    // KR6 — backend 가 type별 프롬프트로 분기하도록 detectionType 전달.
+    fetchAnomalyCausality(ticker, bar.date, bar.type, controller.signal)
       .then((data) => {
         setState({
           status: "SUCCESS",
